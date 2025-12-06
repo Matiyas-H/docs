@@ -66,6 +66,7 @@
             "group": "Calls",
             "pages": [
               "api-reference/calls/create",
+              "api-reference/calls/inline",
               "api-reference/calls/list",
               "api-reference/calls/get"
             ]

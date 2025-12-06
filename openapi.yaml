@@ -2,16 +2,22 @@ openapi: 3.0.0
 info:
   title: Omnia Voice API
   description: |
-    The Omnia Voice API allows you to programmatically manage voice agents, tools, phone numbers, and call logs.
-    
+    The Omnia Voice API allows you to programmatically manage voice agents, create voice calls, and integrate with your systems.
+
     ## Authentication
-    All API requests require an API key to be passed in the `X-API-Key` header.
-    
+    All API requests require an API key in the `X-API-Key` header.
+
     ## Rate Limiting
-    API requests are rate limited to 1000 requests per hour per API key.
+    API requests are rate limited to 50 requests per minute per API key.
+
+    ## Base URL
+    ```
+    https://dashboard.omnia-voice.com/api/v1
+    ```
   version: 1.0.0
   contact:
     email: support@omnia-voice.com
+
 servers:
   - url: https://dashboard.omnia-voice.com/api/v1
     description: Production server
@@ -32,64 +38,78 @@ components:
       type: object
       properties:
         error:
-          type: string
-          description: Error message
-        details:
           type: object
-          description: Additional error details
+          properties:
+            message:
+              type: string
+            code:
+              type: string
+            details:
+              type: object
 
+    # ========== AGENTS ==========
     Agent:
       type: object
       properties:
         id:
           type: string
-          description: Agent unique identifier
+          example: "cm1abc123def"
         name:
           type: string
-          description: Agent name
+          example: "Customer Support Bot"
         description:
           type: string
-          description: Agent description
+          example: "Handles customer inquiries"
         status:
           type: string
-          enum: [ACTIVE, INACTIVE, ARCHIVED]
-          description: Agent status
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
+        type:
+          type: string
+          enum: [standard, custom]
+        workspaceId:
+          type: string
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-        config:
+        standardConfig:
           $ref: '#/components/schemas/AgentConfig'
+        actions:
+          type: array
+          items:
+            type: string
+        knowledgeBases:
+          type: array
+          items:
+            type: string
 
     AgentConfig:
       type: object
       properties:
         languageId:
           type: string
-          description: Language identifier
         voiceId:
           type: string
-          description: Voice identifier
         greeting:
           type: string
-          description: Initial greeting message
+          example: "Hello! How can I help you today?"
         basePrompt:
           type: string
-          description: Base system prompt
+          example: "You are a helpful customer support agent."
         context:
           type: string
-          description: Additional context
+          nullable: true
         questions:
           type: string
-          description: Follow-up questions
+          nullable: true
         customInstructions:
           type: string
-          description: Custom instructions
+          nullable: true
         recordingEnabled:
           type: boolean
-          description: Whether to record calls
+          default: true
         language:
           $ref: '#/components/schemas/Language'
         voice:
@@ -103,10 +123,12 @@ components:
       properties:
         name:
           type: string
-          description: Agent name
+          minLength: 1
+          maxLength: 100
+          example: "Customer Support Bot"
         description:
           type: string
-          description: Agent description
+          example: "Handles customer inquiries"
         status:
           type: string
           enum: [ACTIVE, INACTIVE]
@@ -121,32 +143,74 @@ components:
           properties:
             languageId:
               type: string
+              description: ID of the language (get from /languages endpoint)
+              example: "clx1234567890"
             voiceId:
               type: string
+              description: ID of the voice (get from /voices endpoint)
+              example: "clx0987654321"
             greeting:
               type: string
+              description: First message the agent says when call starts
+              example: "Hello! Thank you for calling. How can I help you today?"
             basePrompt:
               type: string
+              description: System prompt defining the agent's personality and role
+              example: "You are a friendly and professional customer support agent for Acme Corp."
             context:
               type: string
+              description: Additional context about the business/product
+              example: "Acme Corp sells cloud software. Common issues include login problems and billing questions."
             questions:
               type: string
+              description: Questions the agent should ask
+              example: "Ask for the customer's email and order number."
             customInstructions:
               type: string
+              description: Special behavioral instructions
+              example: "Always offer to escalate to a human if the customer is frustrated."
             recordingEnabled:
               type: boolean
               default: true
+              description: Whether to record the call
+        functions:
+          type: array
+          description: Built-in functions to enable
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [CALL_TRANSFER, END_CALL, CALENDAR_CHECK, CALENDAR_BOOK]
+              name:
+                type: string
+              description:
+                type: string
+              config:
+                type: object
+        actions:
+          type: array
+          description: IDs of actions to assign
+          items:
+            type: string
+        knowledgeBases:
+          type: array
+          description: IDs of knowledge bases to assign
+          items:
+            type: string
 
     UpdateAgentRequest:
       type: object
       properties:
         name:
           type: string
+          minLength: 1
+          maxLength: 100
         description:
           type: string
         status:
           type: string
-          enum: [ACTIVE, INACTIVE, ARCHIVED]
+          enum: [ACTIVE, INACTIVE, SUSPENDED]
         config:
           type: object
           properties:
@@ -160,196 +224,17 @@ components:
               type: string
             context:
               type: string
+              nullable: true
             questions:
               type: string
+              nullable: true
             customInstructions:
               type: string
+              nullable: true
             recordingEnabled:
               type: boolean
 
-    Tool:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Tool unique identifier
-        type:
-          type: string
-          enum: [tool, action]
-          description: Tool type
-        name:
-          type: string
-          description: Tool display name
-        modelToolName:
-          type: string
-          description: Name used by AI model
-        description:
-          type: string
-          description: Tool description
-        baseUrlPattern:
-          type: string
-          description: API endpoint URL
-        httpMethod:
-          type: string
-          enum: [GET, POST, PUT, DELETE, PATCH]
-        dynamicParameters:
-          type: object
-          description: Parameters that AI can set during conversation
-          additionalProperties:
-            type: object
-            properties:
-              location:
-                type: string
-                enum: [body, header, query, path, PARAMETER_LOCATION_BODY, PARAMETER_LOCATION_HEADER, PARAMETER_LOCATION_QUERY, PARAMETER_LOCATION_PATH]
-                description: Where to place the parameter in the request
-              schema:
-                type: object
-                properties:
-                  type:
-                    type: string
-                    enum: [string, number, boolean, object, array]
-                  description:
-                    type: string
-                  enum:
-                    type: array
-                    items:
-                      type: string
-                  required:
-                    type: boolean
-              required:
-                type: boolean
-                description: Whether this parameter is required
-        automaticParameters:
-          type: object
-          description: Pre-configured parameters with fixed or system values
-          additionalProperties:
-            type: object
-            properties:
-              location:
-                type: string
-                enum: [body, header, query, path, PARAMETER_LOCATION_BODY, PARAMETER_LOCATION_HEADER, PARAMETER_LOCATION_QUERY, PARAMETER_LOCATION_PATH]
-                description: Where to place the parameter in the request
-              knownValue:
-                type: string
-                description: |
-                  The value to use. Can be a literal value or system variables:
-                  - KNOWN_PARAM_CALL_ID: Current call session ID
-                  - KNOWN_PARAM_USER_EMAIL: User's email address
-                  - KNOWN_PARAM_PHONE_NUMBER: Caller's phone number
-                  - Or any literal string value (e.g., "Bearer sk-api-key")
-        createdAt:
-          type: string
-          format: date-time
-
-    CreateToolRequest:
-      type: object
-      required:
-        - type
-        - name
-        - modelToolName
-        - baseUrlPattern
-        - httpMethod
-      properties:
-        type:
-          type: string
-          enum: [tool, action]
-        name:
-          type: string
-        modelToolName:
-          type: string
-        description:
-          type: string
-        baseUrlPattern:
-          type: string
-        httpMethod:
-          type: string
-          enum: [GET, POST, PUT, DELETE, PATCH]
-        dynamicParameters:
-          type: object
-          description: Parameters that AI can set during conversation
-          additionalProperties:
-            type: object
-            properties:
-              location:
-                type: string
-                enum: [body, header, query, path, PARAMETER_LOCATION_BODY, PARAMETER_LOCATION_HEADER, PARAMETER_LOCATION_QUERY, PARAMETER_LOCATION_PATH]
-              schema:
-                type: object
-                properties:
-                  type:
-                    type: string
-                    enum: [string, number, boolean, object, array]
-                  description:
-                    type: string
-                  enum:
-                    type: array
-                    items:
-                      type: string
-              required:
-                type: boolean
-        automaticParameters:
-          type: object
-          description: Pre-configured parameters with fixed or system values
-          additionalProperties:
-            type: object
-            properties:
-              location:
-                type: string
-                enum: [body, header, query, path, PARAMETER_LOCATION_BODY, PARAMETER_LOCATION_HEADER, PARAMETER_LOCATION_QUERY, PARAMETER_LOCATION_PATH]
-              knownValue:
-                type: string
-                description: The value to use (literal or system variable like KNOWN_PARAM_CALL_ID)
-
-    SystemTool:
-      type: object
-      properties:
-        toolName:
-          type: string
-          description: System tool name
-        description:
-          type: string
-          description: Tool description
-
-    PhoneNumber:
-      type: object
-      properties:
-        id:
-          type: string
-          description: Phone number assignment ID
-        phoneNumber:
-          type: string
-          description: Phone number
-        friendlyName:
-          type: string
-          description: Display name
-        agentId:
-          type: string
-          description: Assigned agent ID
-        status:
-          type: string
-          enum: [ACTIVE, INACTIVE]
-        createdAt:
-          type: string
-          format: date-time
-        agent:
-          $ref: '#/components/schemas/Agent'
-
-    CreatePhoneNumberRequest:
-      type: object
-      required:
-        - phoneNumber
-        - agentId
-      properties:
-        phoneNumber:
-          type: string
-          description: Phone number to assign
-        friendlyName:
-          type: string
-          description: Display name
-        agentId:
-          type: string
-          description: Agent to assign to
-
+    # ========== CALLS ==========
     CreateCallRequest:
       type: object
       required:
@@ -357,32 +242,96 @@ components:
       properties:
         agentId:
           type: string
-          description: The ID of the agent to use for this call
+          description: ID of the agent to use
+          example: "cm1abc123def"
         connectionType:
           type: string
-          enum: [twilio, telnyx, plivo, websocket]
+          enum: [twilio, telnyx, plivo, websocket, webrtc]
           default: twilio
-          description: The telephony provider connection type
+          description: Telephony provider or connection type
         websocket:
           type: object
-          description: WebSocket-specific configuration (required when connectionType is 'websocket')
+          description: Required when connectionType is 'websocket'
           properties:
             inputSampleRate:
               type: integer
-              description: Input audio sample rate in Hz (e.g., 8000, 16000)
-              minimum: 8000
-              maximum: 48000
+              description: Input audio sample rate in Hz
+              example: 8000
             outputSampleRate:
               type: integer
-              description: Output audio sample rate in Hz (e.g., 8000, 16000)
-              minimum: 8000
-              maximum: 48000
-          required:
-            - inputSampleRate
-            - outputSampleRate
+              description: Output audio sample rate in Hz
+              example: 8000
         metadata:
           type: object
-          description: Optional metadata for the call
+          description: Custom metadata for the call
+          additionalProperties: true
+
+    CreateInlineCallRequest:
+      type: object
+      required:
+        - systemPrompt
+        - voice
+        - language
+      properties:
+        systemPrompt:
+          type: string
+          description: The system prompt for the AI
+          example: "You are a helpful assistant for booking appointments."
+        voice:
+          type: string
+          description: Voice ID or name
+          example: "Mark"
+        language:
+          type: string
+          description: Language code
+          example: "en"
+        model:
+          type: string
+          description: AI model to use
+          example: "fixie-ai/ultravox-70B"
+        temperature:
+          type: number
+          minimum: 0
+          maximum: 2
+          default: 0
+        firstSpeaker:
+          type: string
+          enum: [agent, user]
+          default: agent
+          description: Who speaks first
+        selectedTools:
+          type: array
+          description: Tools in Ultravox format
+          items:
+            type: object
+        recordingEnabled:
+          type: boolean
+          default: true
+        connectionType:
+          type: string
+          enum: [twilio, telnyx, plivo, websocket, webrtc]
+          default: twilio
+        websocket:
+          type: object
+          properties:
+            inputSampleRate:
+              type: integer
+              example: 8000
+            outputSampleRate:
+              type: integer
+              example: 8000
+            codec:
+              type: string
+              enum: [pcm, g711]
+              default: g711
+            enableAudioBuffering:
+              type: boolean
+              default: false
+            twilioStream:
+              type: boolean
+              default: false
+        metadata:
+          type: object
           additionalProperties: true
 
     CreateCallResponse:
@@ -390,42 +339,37 @@ components:
       properties:
         id:
           type: string
-          description: Unique identifier for the created call
+          description: Call ID
+          example: "call_abc123"
         websocketUrl:
           type: string
           format: uri
-          description: WebSocket URL to connect to for the voice call
+          description: WebSocket URL to connect to
+          example: "wss://voice.omnia-voice.com/abc123"
         status:
           type: string
-          description: Current status of the call
           enum: [created, connecting, connected, ended]
         connectionType:
           type: string
-          description: The connection type used for this call
-          enum: [twilio, telnyx, plivo, websocket]
+          enum: [twilio, telnyx, plivo, websocket, webrtc]
         agent:
           type: object
           properties:
             id:
               type: string
-              description: Agent ID
             name:
               type: string
-              description: Agent name
             description:
               type: string
-              description: Agent description
         createdAt:
           type: string
           format: date-time
-          description: Timestamp when the call was created
 
     CallLog:
       type: object
       properties:
         id:
           type: string
-          description: Call ID
         startTime:
           type: string
           format: date-time
@@ -437,48 +381,138 @@ components:
           description: Duration in seconds
         status:
           type: string
-          description: Call end reason
         summary:
           type: string
-          description: Call summary
         shortSummary:
           type: string
-          description: Brief summary
         transcript:
           type: string
-          description: Call transcript
 
+    # ========== TOOLS ==========
+    Tool:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [http, client]
+          description: "http = server-side HTTP call, client = client-side via WebSocket"
+        name:
+          type: string
+        modelToolName:
+          type: string
+          description: Name the AI uses to invoke the tool
+        description:
+          type: string
+        baseUrlPattern:
+          type: string
+          description: API endpoint URL (for http type)
+        httpMethod:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+        dynamicParameters:
+          type: object
+          description: Parameters extracted by AI from conversation
+          additionalProperties:
+            type: object
+            properties:
+              location:
+                type: string
+                enum: [body, header, query, path]
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [string, number, boolean, object, array]
+                  description:
+                    type: string
+                  enum:
+                    type: array
+                    items:
+                      type: string
+              required:
+                type: boolean
+        automaticParameters:
+          type: object
+          description: Pre-configured parameters (API keys, session IDs, etc.)
+          additionalProperties:
+            type: object
+            properties:
+              location:
+                type: string
+                enum: [body, header, query, path]
+              knownValue:
+                type: string
+                description: |
+                  Literal value or system variable:
+                  - KNOWN_PARAM_CALL_ID
+                  - KNOWN_PARAM_USER_EMAIL
+                  - KNOWN_PARAM_PHONE_NUMBER
+                  - Or any literal string
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateToolRequest:
+      type: object
+      required:
+        - type
+        - name
+        - modelToolName
+      properties:
+        type:
+          type: string
+          enum: [http, client]
+        name:
+          type: string
+          example: "Book Appointment"
+        modelToolName:
+          type: string
+          example: "bookAppointment"
+        description:
+          type: string
+          example: "Books an appointment for the caller"
+        baseUrlPattern:
+          type: string
+          example: "https://api.example.com/appointments"
+        httpMethod:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+        dynamicParameters:
+          type: object
+          additionalProperties:
+            type: object
+        automaticParameters:
+          type: object
+          additionalProperties:
+            type: object
+
+    # ========== CONFIG ==========
     Voice:
       type: object
       properties:
         id:
           type: string
-          description: Voice ID
         name:
           type: string
-          description: Voice name
         description:
           type: string
-          description: Voice description
         previewUrl:
           type: string
-          description: Audio preview URL
         languageCode:
           type: string
-          description: Language code
 
     Language:
       type: object
       properties:
         id:
           type: string
-          description: Language ID
         code:
           type: string
-          description: ISO language code
         name:
           type: string
-          description: Language name
         isActive:
           type: boolean
 
@@ -497,14 +531,15 @@ components:
               type: integer
             total:
               type: integer
-            totalPages:
-              type: integer
+            hasMore:
+              type: boolean
 
 paths:
+  # ========== AGENTS ==========
   /agents:
     get:
       summary: List agents
-      description: Retrieve a list of all agents for the authenticated user
+      description: Get all agents for the authenticated user
       operationId: listAgents
       tags:
         - Agents
@@ -514,23 +549,25 @@ paths:
           schema:
             type: integer
             default: 1
-          description: Page number
         - name: limit
           in: query
           schema:
             type: integer
             default: 50
             maximum: 100
-          description: Items per page
         - name: status
           in: query
           schema:
             type: string
-            enum: [ACTIVE, INACTIVE, ARCHIVED]
-          description: Filter by status
+            enum: [ACTIVE, INACTIVE, SUSPENDED]
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name or description
       responses:
         '200':
-          description: Successful response
+          description: List of agents
           content:
             application/json:
               schema:
@@ -542,16 +579,10 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Agent'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     post:
       summary: Create agent
-      description: Create a new agent
+      description: Create a new voice agent
       operationId: createAgent
       tags:
         - Agents
@@ -561,21 +592,42 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/CreateAgentRequest'
+            examples:
+              basic:
+                summary: Basic agent
+                value:
+                  name: "Customer Support Bot"
+                  description: "Handles customer inquiries"
+                  config:
+                    languageId: "clx1234567890"
+                    voiceId: "clx0987654321"
+                    greeting: "Hello! How can I help you today?"
+                    basePrompt: "You are a helpful customer support agent."
+                    recordingEnabled: true
+              advanced:
+                summary: Agent with context and instructions
+                value:
+                  name: "Sales Agent"
+                  description: "Qualifies leads and books demos"
+                  status: "ACTIVE"
+                  config:
+                    languageId: "clx1234567890"
+                    voiceId: "clx0987654321"
+                    greeting: "Hi there! Thanks for your interest in our product."
+                    basePrompt: "You are a friendly sales representative for Acme Software."
+                    context: "Acme Software provides CRM solutions starting at $49/month."
+                    questions: "Ask about their current CRM, team size, and pain points."
+                    customInstructions: "If they seem interested, offer to schedule a demo."
+                    recordingEnabled: true
       responses:
         '201':
-          description: Agent created successfully
+          description: Agent created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Agent'
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
+          description: Invalid request
           content:
             application/json:
               schema:
@@ -584,7 +636,6 @@ paths:
   /agents/{id}:
     get:
       summary: Get agent
-      description: Retrieve a specific agent by ID
       operationId: getAgent
       tags:
         - Agents
@@ -594,24 +645,18 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
       responses:
         '200':
-          description: Successful response
+          description: Agent details
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Agent'
         '404':
           description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     put:
       summary: Update agent
-      description: Update an existing agent
       operationId: updateAgent
       tags:
         - Agents
@@ -621,7 +666,6 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
       requestBody:
         required: true
         content:
@@ -630,21 +674,14 @@ paths:
               $ref: '#/components/schemas/UpdateAgentRequest'
       responses:
         '200':
-          description: Agent updated successfully
+          description: Agent updated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Agent'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     delete:
       summary: Delete agent
-      description: Delete an agent
       operationId: deleteAgent
       tags:
         - Agents
@@ -654,30 +691,206 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
       responses:
         '200':
-          description: Agent deleted successfully
+          description: Agent deleted
+
+  # ========== CALLS ==========
+  /calls/create:
+    post:
+      summary: Create call with agent
+      description: |
+        Create a voice call session using a pre-configured agent.
+        Returns a WebSocket URL to connect your telephony provider.
+      operationId: createCall
+      tags:
+        - Calls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCallRequest'
+            examples:
+              webrtc:
+                summary: Browser WebRTC call
+                value:
+                  agentId: "cm1abc123def"
+                  connectionType: "webrtc"
+              twilio:
+                summary: Twilio integration
+                value:
+                  agentId: "cm1abc123def"
+                  connectionType: "twilio"
+              websocket:
+                summary: Custom WebSocket (SIP/telephony)
+                value:
+                  agentId: "cm1abc123def"
+                  connectionType: "websocket"
+                  websocket:
+                    inputSampleRate: 8000
+                    outputSampleRate: 8000
+      responses:
+        '201':
+          description: Call created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateCallResponse'
+              example:
+                id: "call_abc123"
+                websocketUrl: "wss://voice.omnia-voice.com/session123"
+                status: "created"
+                connectionType: "webrtc"
+                agent:
+                  id: "cm1abc123def"
+                  name: "Customer Support Bot"
+                createdAt: "2025-01-01T12:00:00Z"
+        '402':
+          description: Insufficient balance
+        '404':
+          description: Agent not found
+
+  /calls/inline:
+    post:
+      summary: Create inline call (no agent)
+      description: |
+        Create a voice call with inline configuration - no pre-created agent required.
+        Pass the system prompt, voice, and tools directly in the request.
+        Ideal for stateless integrations.
+      operationId: createInlineCall
+      tags:
+        - Calls
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInlineCallRequest'
+            examples:
+              basic:
+                summary: Simple inline call
+                value:
+                  systemPrompt: "You are a helpful assistant."
+                  voice: "Mark"
+                  language: "en"
+                  connectionType: "webrtc"
+              withTools:
+                summary: Inline call with tools
+                value:
+                  systemPrompt: "You are an appointment booking assistant."
+                  voice: "Sarah"
+                  language: "en"
+                  connectionType: "websocket"
+                  websocket:
+                    inputSampleRate: 8000
+                    outputSampleRate: 8000
+                    codec: "g711"
+                  selectedTools:
+                    - temporaryTool:
+                        modelToolName: "bookAppointment"
+                        description: "Book an appointment"
+                        dynamicParameters:
+                          - name: "date"
+                            location: "PARAMETER_LOCATION_BODY"
+                            schema:
+                              type: "string"
+                              description: "Appointment date"
+                            required: true
+                        client: {}
+      responses:
+        '201':
+          description: Call created
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
-                    type: boolean
-                  message:
+                  id:
                     type: string
-        '404':
-          description: Agent not found
+                  websocketUrl:
+                    type: string
+                  status:
+                    type: string
+                  connectionType:
+                    type: string
+                  createdAt:
+                    type: string
+        '402':
+          description: Insufficient balance
+
+  /calls:
+    get:
+      summary: List call logs
+      operationId: listCalls
+      tags:
+        - Calls
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of calls
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/CallLog'
 
+  /calls/{id}:
+    get:
+      summary: Get call details
+      operationId: getCall
+      tags:
+        - Calls
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Call details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CallLog'
+        '404':
+          description: Call not found
+
+  # ========== TOOLS ==========
   /agent-tools:
     get:
       summary: List tools
-      description: Retrieve a list of all tools for the authenticated user
       operationId: listTools
       tags:
         - Tools
@@ -696,10 +909,10 @@ paths:
           in: query
           schema:
             type: string
-            enum: [tool, action]
+            enum: [http, client]
       responses:
         '200':
-          description: Successful response
+          description: List of tools
           content:
             application/json:
               schema:
@@ -714,7 +927,6 @@ paths:
 
     post:
       summary: Create tool
-      description: Create a new tool
       operationId: createTool
       tags:
         - Tools
@@ -725,96 +937,57 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateToolRequest'
             examples:
-              callForwarding:
-                summary: Call Forwarding Tool
+              httpTool:
+                summary: HTTP tool (server-side)
                 value:
-                  name: "Forward Call"
-                  description: "Transfers call to a human agent when needed"
-                  modelToolName: "forwardCall"
-                  httpMethod: "POST"
-                  baseUrlPattern: "https://your-api.com/webhooks/forward-call"
-                  automaticParameters:
-                    callId:
-                      location: "body"
-                      knownValue: "KNOWN_PARAM_CALL_ID"
-                  dynamicParameters:
-                    targetNumber:
-                      location: "body"
-                      schema:
-                        type: "string"
-                        description: "Phone number to forward to"
-                      required: true
-                    reason:
-                      location: "body"
-                      schema:
-                        type: "string"
-                        description: "Reason for transferring the call"
-                      required: true
-              appointmentBooking:
-                summary: Appointment Booking Tool
-                value:
+                  type: "http"
                   name: "Book Appointment"
-                  description: "Books appointments with customer information"
                   modelToolName: "bookAppointment"
+                  description: "Books an appointment for the caller"
+                  baseUrlPattern: "https://api.example.com/appointments"
                   httpMethod: "POST"
-                  baseUrlPattern: "https://api.clinic.com/appointments"
                   automaticParameters:
-                    apiKey:
+                    Authorization:
                       location: "header"
                       knownValue: "Bearer sk-your-api-key"
-                    source:
-                      location: "body"
-                      knownValue: "voice-agent"
                   dynamicParameters:
-                    appointmentData:
+                    date:
                       location: "body"
                       schema:
-                        type: "object"
-                        properties:
-                          date:
-                            type: "string"
-                            description: "Appointment date"
-                          time:
-                            type: "string"
-                            description: "Appointment time"
-                          patientName:
-                            type: "string"
-                            description: "Patient's full name"
-                          reason:
-                            type: "string"
-                            description: "Reason for visit"
-                        required: ["date", "time", "patientName"]
+                        type: "string"
+                        description: "Appointment date (YYYY-MM-DD)"
+                      required: true
+                    time:
+                      location: "body"
+                      schema:
+                        type: "string"
+                        description: "Appointment time (HH:MM)"
+                      required: true
+              clientTool:
+                summary: Client tool (WebSocket)
+                value:
+                  type: "client"
+                  name: "Transfer Call"
+                  modelToolName: "transferCall"
+                  description: "Transfer the call to another department"
+                  dynamicParameters:
+                    department:
+                      schema:
+                        type: "string"
+                        description: "Department to transfer to"
+                        enum: ["sales", "support", "billing"]
                       required: true
       responses:
         '201':
-          description: Tool created successfully
+          description: Tool created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tool'
-        '400':
-          description: Invalid request body
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   /agent-tools/{id}:
     get:
       summary: Get tool
-      description: Retrieve a specific tool by ID
       operationId: getTool
       tags:
         - Tools
@@ -826,15 +999,14 @@ paths:
             type: string
       responses:
         '200':
-          description: Successful response
+          description: Tool details
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Tool'
 
-    put:
+    patch:
       summary: Update tool
-      description: Update an existing tool
       operationId: updateTool
       tags:
         - Tools
@@ -852,7 +1024,7 @@ paths:
               $ref: '#/components/schemas/CreateToolRequest'
       responses:
         '200':
-          description: Tool updated successfully
+          description: Tool updated
           content:
             application/json:
               schema:
@@ -860,7 +1032,6 @@ paths:
 
     delete:
       summary: Delete tool
-      description: Delete a tool
       operationId: deleteTool
       tags:
         - Tools
@@ -872,18 +1043,18 @@ paths:
             type: string
       responses:
         '200':
-          description: Tool deleted successfully
+          description: Tool deleted
 
   /agent-tools/system:
     get:
       summary: List system tools
-      description: Retrieve a list of available system tools
+      description: Get available built-in system tools
       operationId: listSystemTools
       tags:
         - Tools
       responses:
         '200':
-          description: Successful response
+          description: List of system tools
           content:
             application/json:
               schema:
@@ -892,12 +1063,16 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/SystemTool'
+                      type: object
+                      properties:
+                        toolName:
+                          type: string
+                        description:
+                          type: string
 
   /agents/{id}/tools:
     get:
-      summary: List agent tools
-      description: Get all tools assigned to an agent
+      summary: List agent's tools
       operationId: listAgentTools
       tags:
         - Tools
@@ -907,10 +1082,9 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
       responses:
         '200':
-          description: Successful response
+          description: Agent's assigned tools
           content:
             application/json:
               schema:
@@ -922,65 +1096,17 @@ paths:
                       customTools:
                         type: array
                         items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            name:
-                              type: string
-                            description:
-                              type: string
-                            modelToolName:
-                              type: string
-                            httpMethod:
-                              type: string
-                            baseUrlPattern:
-                              type: string
-                            type:
-                              type: string
-                              enum: [custom]
-                            assignedAt:
-                              type: string
-                              format: date-time
+                          $ref: '#/components/schemas/Tool'
                       systemTools:
                         type: array
                         items:
                           type: object
-                          properties:
-                            id:
-                              type: string
-                            toolName:
-                              type: string
-                            displayName:
-                              type: string
-                            description:
-                              type: string
-                            type:
-                              type: string
-                              enum: [system]
-                            assignedAt:
-                              type: string
-                              format: date-time
                       totalTools:
                         type: integer
-                        description: Total count of assigned tools
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
     post:
       summary: Assign tools to agent
-      description: Assign one or more tools to an agent
-      operationId: assignToolsToAgent
+      operationId: assignTools
       tags:
         - Tools
       parameters:
@@ -989,7 +1115,6 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
       requestBody:
         required: true
         content:
@@ -1003,11 +1128,12 @@ paths:
                   type: array
                   items:
                     type: string
-                  description: Array of tool IDs to assign
                   minItems: 1
+            example:
+              toolIds: ["tool_abc123", "tool_def456"]
       responses:
         '200':
-          description: Tools assigned successfully
+          description: Tools assigned
           content:
             application/json:
               schema:
@@ -1017,33 +1143,12 @@ paths:
                     type: string
                   assigned:
                     type: integer
-                    description: Number of newly assigned tools
                   alreadyAssigned:
                     type: integer
-                    description: Number of tools that were already assigned
-        '400':
-          description: Invalid request or tools not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   /agents/{id}/tools/{toolId}:
     delete:
       summary: Remove tool from agent
-      description: Remove a tool assignment from an agent
       operationId: removeToolFromAgent
       tags:
         - Tools
@@ -1053,34 +1158,20 @@ paths:
           required: true
           schema:
             type: string
-          description: Agent ID
         - name: toolId
           in: path
           required: true
           schema:
             type: string
-          description: Tool ID
       responses:
         '204':
-          description: Tool removed successfully
-        '404':
-          description: Agent or tool assignment not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Tool removed
 
+  # ========== PHONE NUMBERS ==========
   /numbers:
     get:
       summary: List phone numbers
-      description: Retrieve a list of phone number assignments
-      operationId: listPhoneNumbers
+      operationId: listNumbers
       tags:
         - Phone Numbers
       parameters:
@@ -1101,127 +1192,7 @@ paths:
             enum: [ACTIVE, INACTIVE]
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/PhoneNumber'
-
-    post:
-      summary: Assign phone number
-      description: Create a phone number assignment
-      operationId: assignPhoneNumber
-      tags:
-        - Phone Numbers
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePhoneNumberRequest'
-      responses:
-        '201':
-          description: Phone number assigned successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumber'
-
-  /numbers/{id}:
-    get:
-      summary: Get phone number
-      description: Retrieve a specific phone number assignment
-      operationId: getPhoneNumber
-      tags:
-        - Phone Numbers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumber'
-
-    put:
-      summary: Update phone number
-      description: Update a phone number assignment
-      operationId: updatePhoneNumber
-      tags:
-        - Phone Numbers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                friendlyName:
-                  type: string
-                agentId:
-                  type: string
-                status:
-                  type: string
-                  enum: [ACTIVE, INACTIVE]
-      responses:
-        '200':
-          description: Phone number updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PhoneNumber'
-
-    delete:
-      summary: Delete phone number
-      description: Delete a phone number assignment
-      operationId: deletePhoneNumber
-      tags:
-        - Phone Numbers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Phone number deleted successfully
-
-  /agents/{id}/numbers:
-    get:
-      summary: Get agent phone numbers
-      description: Get all phone numbers assigned to an agent
-      operationId: getAgentPhoneNumbers
-      tags:
-        - Phone Numbers
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-          description: Agent ID
-      responses:
-        '200':
-          description: Successful response
+          description: List of phone numbers
           content:
             application/json:
               schema:
@@ -1230,186 +1201,41 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: '#/components/schemas/PhoneNumber'
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        phoneNumber:
+                          type: string
+                        friendlyName:
+                          type: string
+                        agentId:
+                          type: string
+                        status:
+                          type: string
+                          enum: [ACTIVE, INACTIVE]
 
-  /calls:
+  /numbers/{id}:
     get:
-      summary: List call logs
-      description: Retrieve call logs for the authenticated user
-      operationId: listCallLogs
+      summary: Get phone number
+      operationId: getNumber
       tags:
-        - Call Logs
-      parameters:
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: limit
-          in: query
-          schema:
-            type: integer
-            default: 50
-        - name: status
-          in: query
-          schema:
-            type: string
-          description: Filter by call status
-        - name: startDate
-          in: query
-          schema:
-            type: string
-            format: date
-          description: Filter by start date
-        - name: endDate
-          in: query
-          schema:
-            type: string
-            format: date
-          description: Filter by end date
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                allOf:
-                  - $ref: '#/components/schemas/PaginatedResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CallLog'
-
-  /calls/create:
-    post:
-      summary: Create voice call
-      description: |
-        Create a voice call session for BYOT (Bring Your Own Telephony) users.
-        
-        Supports multiple connection types:
-        - **twilio** - For Twilio WebSocket connections (default)
-        - **telnyx** - For Telnyx telephony provider
-        - **plivo** - For Plivo telephony provider
-        - **websocket** - For custom WebSocket connections with configurable sample rates
-        
-        Returns a WebSocket URL that can be used with the specified telephony provider.
-      operationId: createCall
-      tags:
-        - Calls
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCallRequest'
-            examples:
-              twilio:
-                summary: Twilio connection (default)
-                value:
-                  agentId: "agent-123"
-              telnyx:
-                summary: Telnyx connection
-                value:
-                  agentId: "agent-123"
-                  connectionType: "telnyx"
-              websocket:
-                summary: Custom WebSocket connection
-                value:
-                  agentId: "agent-123"
-                  connectionType: "websocket"
-                  websocket:
-                    inputSampleRate: 16000
-                    outputSampleRate: 16000
-      responses:
-        '201':
-          description: Call created successfully
-          headers:
-            Location:
-              schema:
-                type: string
-              description: URL to the created call resource
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateCallResponse'
-        '400':
-          description: Bad request - Invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                missingAgent:
-                  summary: Missing agent ID
-                  value:
-                    error:
-                      message: "agentId is required"
-                      code: "BAD_REQUEST"
-                missingSampleRates:
-                  summary: WebSocket missing sample rates
-                  value:
-                    error:
-                      message: "WebSocket connection requires inputSampleRate and outputSampleRate"
-                      code: "BAD_REQUEST"
-        '401':
-          description: Unauthorized - Invalid or missing API key
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '402':
-          description: Payment Required - Insufficient balance
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '404':
-          description: Agent not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-  /calls/{id}:
-    get:
-      summary: Get call details
-      description: Retrieve details of a specific call
-      operationId: getCallDetails
-      tags:
-        - Call Logs
+        - Phone Numbers
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: string
-          description: Call ID
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CallLog'
-        '404':
-          description: Call not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+          description: Phone number details
 
+  # ========== CONFIGURATION ==========
   /voices:
     get:
       summary: List voices
-      description: Retrieve available voices for agent configuration
+      description: Get available voices for agent configuration
       operationId: listVoices
       tags:
         - Configuration
@@ -1418,15 +1244,14 @@ paths:
           in: query
           schema:
             type: string
-          description: Filter by language code
+          description: Filter by language code (e.g., "en", "es")
         - name: isActive
           in: query
           schema:
             type: boolean
-          description: Filter by active status
       responses:
         '200':
-          description: Successful response
+          description: List of voices
           content:
             application/json:
               schema:
@@ -1438,17 +1263,13 @@ paths:
                       $ref: '#/components/schemas/Voice'
                   groupedByLanguage:
                     type: object
-                    additionalProperties:
-                      type: array
-                      items:
-                        $ref: '#/components/schemas/Voice'
                   total:
                     type: integer
 
   /languages:
     get:
       summary: List languages
-      description: Retrieve available languages for agent configuration
+      description: Get available languages for agent configuration
       operationId: listLanguages
       tags:
         - Configuration
@@ -1457,10 +1278,9 @@ paths:
           in: query
           schema:
             type: boolean
-          description: Filter by active status
       responses:
         '200':
-          description: Successful response
+          description: List of languages
           content:
             application/json:
               schema:
@@ -1475,14 +1295,12 @@ paths:
 
 tags:
   - name: Agents
-    description: Manage voice agents
-  - name: Tools
-    description: Manage agent tools and actions
-  - name: Phone Numbers
-    description: Manage phone number assignments
+    description: Create and manage voice agents
   - name: Calls
     description: Create and manage voice calls
-  - name: Call Logs
-    description: View call history and details
+  - name: Tools
+    description: Create and manage agent tools
+  - name: Phone Numbers
+    description: Manage phone number assignments
   - name: Configuration
-    description: Get configuration options (voices, languages)
+    description: Get available voices and languages
