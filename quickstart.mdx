@@ -1,80 +1,189 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Create your first voice agent in 5 minutes"
 ---
 
-## Get started in three steps
+# Quickstart
 
-Get your documentation site running locally and make your first customization.
+This guide walks you through creating your first voice agent using the Omnia Voice API.
 
-### Step 1: Set up your local environment
+## Prerequisites
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+Before you begin, make sure you have:
 
-### Step 2: Deploy your changes
+1. An Omnia Voice account ([Sign up here](https://dashboard.omnia-voice.com))
+2. An API key ([Generate one in the dashboard](https://dashboard.omnia-voice.com/dashboard/api-keys))
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
+## Step 1: Get Your API Key
+
+Navigate to the [API Keys](https://dashboard.omnia-voice.com/dashboard/api-keys) section in your dashboard and create a new API key.
+
+<Warning>
+  Keep your API key secure and never expose it in client-side code.
+</Warning>
+
+## Step 2: Get Available Voices
+
+First, let's see what voices are available:
+
+<CodeGroup>
+```bash cURL
+curl https://dashboard.omnia-voice.com/api/v1/voices \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+```javascript Node.js
+const response = await fetch('https://dashboard.omnia-voice.com/api/v1/voices', {
+  headers: { 'X-API-Key': 'YOUR_API_KEY' }
+});
+const voices = await response.json();
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dashboard.omnia-voice.com/api/v1/voices',
+    headers={'X-API-Key': 'YOUR_API_KEY'}
+)
+voices = response.json()
+```
+</CodeGroup>
+
+## Step 3: Get Available Languages
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/languages \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+## Step 4: Create Your First Agent
+
+Now let's create a voice agent:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agents \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Customer Support Agent",
+    "description": "A friendly customer support representative",
+    "status": "ACTIVE",
+    "config": {
+      "languageId": "YOUR_LANGUAGE_ID",
+      "voiceId": "YOUR_VOICE_ID",
+      "greeting": "Hello! Thank you for calling. How can I help you today?",
+      "basePrompt": "You are a friendly and professional customer support agent.",
+      "context": "You work for a technology company that provides cloud services.",
+      "customInstructions": "Always be polite and try to resolve issues quickly.",
+      "recordingEnabled": true
+    }
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://dashboard.omnia-voice.com/api/v1/agents', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Customer Support Agent',
+    description: 'A friendly customer support representative',
+    status: 'ACTIVE',
+    config: {
+      languageId: 'YOUR_LANGUAGE_ID',
+      voiceId: 'YOUR_VOICE_ID',
+      greeting: 'Hello! Thank you for calling. How can I help you today?',
+      basePrompt: 'You are a friendly and professional customer support agent.',
+      recordingEnabled: true
+    }
+  })
+});
+```
+</CodeGroup>
+
+<Accordion title="Example Response">
+```json
+{
+  "id": "agent-123",
+  "name": "Customer Support Agent",
+  "status": "ACTIVE",
+  "createdAt": "2025-01-01T00:00:00Z"
+}
+```
 </Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+## Step 5: Test Your Agent
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+Test your agent using WebRTC:
 
-### Step 3: Go live
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/calls/create \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "YOUR_AGENT_ID",
+    "connectionType": "webrtc"
+  }'
+```
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+This returns a WebSocket URL you can use to connect and start a voice conversation.
 
-## Next steps
+## Step 6: Add Tools (Optional)
 
-Now that you have your docs running, explore these key features:
+Tools allow your agent to perform actions. Here's how to create a simple tool:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agent-tools \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "http",
+    "name": "Book Appointment",
+    "modelToolName": "bookAppointment",
+    "description": "Books an appointment for the caller",
+    "baseUrlPattern": "https://your-api.com/appointments",
+    "httpMethod": "POST",
+    "dynamicParameters": {
+      "date": {
+        "location": "body",
+        "schema": {
+          "type": "string",
+          "description": "Appointment date"
+        },
+        "required": true
+      }
+    }
+  }'
+```
+
+Then assign it to your agent:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agents/YOUR_AGENT_ID/tools \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolIds": ["YOUR_TOOL_ID"]
+  }'
+```
+
+## Next Steps
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Agent Configuration" icon="robot" href="/guides/agents">
+    Learn about advanced agent configuration
+  </Card>
+  <Card title="Tools & Actions" icon="wrench" href="/guides/tools">
+    Add powerful capabilities to your agents
+  </Card>
+  <Card title="WebSocket Integration" icon="plug" href="/guides/websocket">
+    Build custom voice applications
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore the complete API
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

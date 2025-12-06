@@ -1,0 +1,148 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications about call events"
+---
+
+# Webhooks
+
+Webhooks allow you to receive real-time notifications when events occur in your Omnia Voice account. Set up webhook endpoints to get notified about call starts, completions, and more.
+
+## Webhook Events
+
+| Event | Description |
+|-------|-------------|
+| `call.started` | A call has started |
+| `call.ended` | A call has ended |
+| `call.completed` | Call completed with transcript and summary |
+| `tool.invoked` | A tool was invoked during a call |
+
+## Setting Up Webhooks
+
+Configure webhooks in your dashboard at **Settings → Webhooks**.
+
+## Webhook Payload
+
+<CodeGroup>
+```json call.completed
+{
+  "event": "call.completed",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "data": {
+    "callId": "call_abc123",
+    "agentId": "agent_xyz789",
+    "duration": 120,
+    "status": "completed",
+    "transcript": "Agent: Hello! How can I help you today?...",
+    "summary": "Customer called to inquire about pricing."
+  }
+}
+```
+
+```json call.started
+{
+  "event": "call.started",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "data": {
+    "callId": "call_abc123",
+    "agentId": "agent_xyz789",
+    "phoneNumber": "+1234567890"
+  }
+}
+```
+
+```json tool.invoked
+{
+  "event": "tool.invoked",
+  "timestamp": "2025-01-01T12:00:00Z",
+  "data": {
+    "callId": "call_abc123",
+    "toolName": "bookAppointment",
+    "parameters": {
+      "date": "2025-01-15",
+      "time": "10:00"
+    },
+    "result": {
+      "success": true,
+      "appointmentId": "apt_123"
+    }
+  }
+}
+```
+</CodeGroup>
+
+## Webhook Headers
+
+Each webhook request includes these headers:
+
+| Header | Description |
+|--------|-------------|
+| `X-Webhook-Signature` | HMAC signature for verification |
+| `X-Webhook-Timestamp` | Timestamp of the webhook |
+| `Content-Type` | `application/json` |
+
+## Verifying Webhooks
+
+Verify webhook signatures to ensure requests come from Omnia Voice:
+
+<CodeGroup>
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifyWebhook(payload, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+```
+
+```python Python
+import hmac
+import hashlib
+
+def verify_webhook(payload, signature, secret):
+    expected = hmac.new(
+        secret.encode(),
+        payload.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+```
+</CodeGroup>
+
+## Retry Policy
+
+Failed webhook deliveries are retried with exponential backoff:
+
+| Retry | Delay |
+|-------|-------|
+| 1st | 1 minute |
+| 2nd | 5 minutes |
+| 3rd | 30 minutes |
+| 4th | 2 hours |
+| 5th | 24 hours |
+
+After 5 failed attempts, the webhook is marked as failed.
+
+## Best Practices
+
+<Check>Respond with 2xx status within 5 seconds</Check>
+<Check>Process webhook data asynchronously</Check>
+<Check>Always verify signatures in production</Check>
+<Check>Use `callId` to handle duplicates idempotently</Check>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tools & Actions" icon="wrench" href="/guides/tools">
+    Create tools that trigger webhooks
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    Explore the API
+  </Card>
+</CardGroup>

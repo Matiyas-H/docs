@@ -1,0 +1,106 @@
+---
+title: "Authentication"
+description: "How to authenticate with the Omnia Voice API"
+---
+
+# Authentication
+
+All API requests require authentication using an API key.
+
+## Getting Your API Key
+
+<Steps>
+  <Step title="Log in to your dashboard">
+    Go to [dashboard.omnia-voice.com](https://dashboard.omnia-voice.com)
+  </Step>
+  <Step title="Navigate to API Keys">
+    Go to **Settings → API Keys**
+  </Step>
+  <Step title="Create a new key">
+    Click **Create New API Key** and copy it immediately
+  </Step>
+</Steps>
+
+<Warning>
+  You won't be able to see your API key again after creation. Store it securely.
+</Warning>
+
+## Using Your API Key
+
+Include your API key in the `X-API-Key` header with every request:
+
+<CodeGroup>
+```bash cURL
+curl https://dashboard.omnia-voice.com/api/v1/agents \
+  -H "X-API-Key: ck_prod_xxxxxxxxxxxxxxxxxxxx"
+```
+
+```javascript Node.js
+const response = await fetch('https://dashboard.omnia-voice.com/api/v1/agents', {
+  headers: {
+    'X-API-Key': 'ck_prod_xxxxxxxxxxxxxxxxxxxx'
+  }
+});
+```
+
+```python Python
+import requests
+
+response = requests.get(
+    'https://dashboard.omnia-voice.com/api/v1/agents',
+    headers={'X-API-Key': 'ck_prod_xxxxxxxxxxxxxxxxxxxx'}
+)
+```
+</CodeGroup>
+
+## API Key Types
+
+| Prefix | Type | Use Case |
+|--------|------|----------|
+| `ck_prod_` | Production | Production environment |
+| `ck_test_` | Test | Testing and development |
+
+## Security Best Practices
+
+<Warning>
+  Never expose your API key in client-side code, public repositories, or logs.
+</Warning>
+
+### Do's
+
+<Check>Store API keys in environment variables</Check>
+<Check>Use server-side code to make API calls</Check>
+<Check>Rotate keys periodically</Check>
+<Check>Use different keys for development and production</Check>
+
+### Don'ts
+
+<Cross>Never commit API keys to version control</Cross>
+<Cross>Never include API keys in client-side JavaScript</Cross>
+<Cross>Never share API keys via insecure channels</Cross>
+<Cross>Never log API keys</Cross>
+
+## Revoking API Keys
+
+If you suspect your API key has been compromised:
+
+1. Go to **Settings → API Keys**
+2. Find the compromised key
+3. Click **Revoke**
+4. Create a new API key
+
+## Rate Limiting
+
+API requests are rate limited:
+
+- **50 requests per minute** per API key
+
+Rate limit headers are included in every response:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Maximum requests allowed |
+| `X-RateLimit-Remaining` | Requests remaining in window |
+| `X-RateLimit-Reset` | Unix timestamp when limit resets |
+
+When you exceed the rate limit, you'll receive a `429 Too Many Requests` response.

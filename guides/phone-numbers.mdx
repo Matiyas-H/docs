@@ -1,0 +1,95 @@
+---
+title: "Phone Numbers"
+description: "Assign phone numbers to your voice agents"
+---
+
+# Phone Numbers
+
+Assign phone numbers to your agents to receive inbound calls. When someone calls the number, they're connected to the assigned agent.
+
+## How It Works
+
+1. Purchase or port a phone number in your dashboard
+2. Assign the number to an agent
+3. Inbound calls are automatically routed to the agent
+
+## Listing Your Numbers
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/numbers \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+<Accordion title="Example Response">
+```json
+{
+  "data": [
+    {
+      "id": "num_abc123",
+      "phoneNumber": "+1234567890",
+      "friendlyName": "Support Line",
+      "agentId": "agent_xyz",
+      "status": "ACTIVE",
+      "createdAt": "2025-01-01T00:00:00Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 1
+  }
+}
+```
+</Accordion>
+
+## Assigning Numbers to Agents
+
+Numbers are assigned when you create or update them in the dashboard. Each number can only be assigned to one agent at a time.
+
+## Number Status
+
+| Status | Description |
+|--------|-------------|
+| `ACTIVE` | Number is receiving calls |
+| `INACTIVE` | Number is paused |
+
+## Getting Agent's Numbers
+
+To see all numbers assigned to a specific agent:
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/agents/AGENT_ID/numbers \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+## Bring Your Own Telephony (BYOT)
+
+If you have your own telephony provider (Twilio, Telnyx, Plivo), you can connect calls directly using the WebSocket API:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/calls/create \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "YOUR_AGENT_ID",
+    "connectionType": "twilio"
+  }'
+```
+
+Supported connection types:
+- `twilio` - Twilio Media Streams
+- `telnyx` - Telnyx telephony
+- `plivo` - Plivo telephony
+- `websocket` - Custom WebSocket
+- `webrtc` - Browser-based WebRTC
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="WebSocket Integration" icon="plug" href="/guides/websocket">
+    Connect your own telephony
+  </Card>
+  <Card title="Creating Agents" icon="robot" href="/guides/agents">
+    Configure your agents
+  </Card>
+</CardGroup>

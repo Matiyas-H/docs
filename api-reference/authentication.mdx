@@ -1,0 +1,80 @@
+---
+title: "Authentication"
+description: "API authentication details"
+---
+
+# Authentication
+
+All API requests must include your API key in the `X-API-Key` header.
+
+## Header Format
+
+```
+X-API-Key: ck_prod_xxxxxxxxxxxxxxxxxxxx
+```
+
+## Example Request
+
+<CodeGroup>
+```bash cURL
+curl https://dashboard.omnia-voice.com/api/v1/agents \
+  -H "X-API-Key: ck_prod_xxxxxxxxxxxxxxxxxxxx"
+```
+
+```javascript JavaScript
+fetch('https://dashboard.omnia-voice.com/api/v1/agents', {
+  headers: {
+    'X-API-Key': 'ck_prod_xxxxxxxxxxxxxxxxxxxx'
+  }
+})
+```
+
+```python Python
+import requests
+
+requests.get(
+    'https://dashboard.omnia-voice.com/api/v1/agents',
+    headers={'X-API-Key': 'ck_prod_xxxxxxxxxxxxxxxxxxxx'}
+)
+```
+</CodeGroup>
+
+## API Key Types
+
+| Prefix | Environment |
+|--------|-------------|
+| `ck_prod_` | Production |
+| `ck_test_` | Test/Development |
+
+## Error Responses
+
+```json 401 Unauthorized
+{
+  "error": {
+    "message": "Invalid API key",
+    "code": "INVALID_API_KEY"
+  }
+}
+```
+
+```json 403 Forbidden
+{
+  "error": {
+    "message": "Insufficient permissions",
+    "code": "FORBIDDEN"
+  }
+}
+```
+
+## Rate Limits
+
+- 50 requests per minute per API key
+- Limits reset every 60 seconds
+
+Rate limit headers:
+
+| Header | Description |
+|--------|-------------|
+| `X-RateLimit-Limit` | Max requests allowed |
+| `X-RateLimit-Remaining` | Requests remaining |
+| `X-RateLimit-Reset` | Unix timestamp of reset |

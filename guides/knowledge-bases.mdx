@@ -1,0 +1,107 @@
+---
+title: "Knowledge Bases"
+description: "Train your agents with domain-specific knowledge"
+---
+
+# Knowledge Bases
+
+Knowledge bases allow you to train your agents with domain-specific information. Upload documents, URLs, or text content to give your agents the knowledge they need to answer questions accurately.
+
+## How It Works
+
+When a user asks a question, the agent searches through assigned knowledge bases to find relevant information, then uses that context to provide accurate answers.
+
+<Steps>
+  <Step title="Create a knowledge base">
+    Create a container for your knowledge
+  </Step>
+  <Step title="Add sources">
+    Upload documents, URLs, or text content
+  </Step>
+  <Step title="Assign to agents">
+    Link the knowledge base to your agents
+  </Step>
+</Steps>
+
+## Source Types
+
+### Text Content
+
+Add structured text content directly:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/knowledge-bases/KB_ID/sources \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "text",
+    "name": "Pricing Information",
+    "content": "Our pricing starts at $29/month for the Basic plan..."
+  }'
+```
+
+### URL Content
+
+Import content from web pages:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/knowledge-bases/KB_ID/sources \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "url",
+    "name": "FAQ Page",
+    "url": "https://example.com/faq"
+  }'
+```
+
+### File Uploads
+
+Supported formats: PDF, DOCX, TXT, MD
+
+Upload through the dashboard or use the file upload API.
+
+## Assigning to Agents
+
+Link knowledge bases to agents so they can access the information:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agents/AGENT_ID/knowledge-bases \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "knowledgeBaseIds": ["kb-id-1", "kb-id-2"]
+  }'
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Content Organization">
+    - Create separate knowledge bases for different topics
+    - Use clear, descriptive names
+    - Group related information together
+  </Accordion>
+  <Accordion title="Content Quality">
+    - Keep content up to date
+    - Use clear, concise language
+    - Structure with headers and bullet points
+    - Avoid redundant information
+  </Accordion>
+  <Accordion title="Testing">
+    - Test with real questions
+    - Verify accurate retrieval
+    - Iterate based on call logs
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Agents" icon="robot" href="/guides/agents">
+    Configure agents with knowledge bases
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    See all knowledge base endpoints
+  </Card>
+</CardGroup>

@@ -1,0 +1,125 @@
+---
+title: "Error Handling"
+description: "Understanding API error responses"
+---
+
+# Error Handling
+
+The Omnia Voice API uses standard HTTP status codes and returns detailed error information.
+
+## Error Response Format
+
+```json
+{
+  "error": {
+    "message": "Human-readable error message",
+    "code": "ERROR_CODE",
+    "details": { ... }
+  }
+}
+```
+
+## HTTP Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| `200` | Success |
+| `201` | Created |
+| `204` | No Content |
+| `400` | Bad Request |
+| `401` | Unauthorized |
+| `402` | Payment Required |
+| `403` | Forbidden |
+| `404` | Not Found |
+| `409` | Conflict |
+| `429` | Too Many Requests |
+| `500` | Internal Server Error |
+
+## Common Errors
+
+### Authentication Errors
+
+```json 401 - Invalid API Key
+{
+  "error": {
+    "message": "Invalid API key",
+    "code": "INVALID_API_KEY"
+  }
+}
+```
+
+### Validation Errors
+
+```json 400 - Validation Error
+{
+  "error": {
+    "message": "Validation failed",
+    "code": "VALIDATION_ERROR",
+    "details": {
+      "name": "Name is required",
+      "config.voiceId": "Invalid voice ID"
+    }
+  }
+}
+```
+
+### Resource Errors
+
+```json 404 - Not Found
+{
+  "error": {
+    "message": "Agent not found",
+    "code": "NOT_FOUND"
+  }
+}
+```
+
+### Rate Limiting
+
+```json 429 - Rate Limit Exceeded
+{
+  "error": {
+    "message": "Rate limit exceeded",
+    "code": "RATE_LIMIT_EXCEEDED"
+  }
+}
+```
+
+## Handling Errors
+
+<CodeGroup>
+```javascript JavaScript
+async function makeRequest() {
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    const error = await response.json();
+
+    if (response.status === 429) {
+      // Wait and retry
+      await sleep(60000);
+      return makeRequest();
+    }
+
+    throw new Error(error.error.message);
+  }
+
+  return response.json();
+}
+```
+
+```python Python
+import time
+import requests
+
+def make_request():
+    response = requests.get(url, headers=headers)
+
+    if response.status_code == 429:
+        time.sleep(60)
+        return make_request()
+
+    response.raise_for_status()
+    return response.json()
+```
+</CodeGroup>

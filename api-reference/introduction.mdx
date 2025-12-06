@@ -1,33 +1,123 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Complete reference for the Omnia Voice API"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+# API Reference
 
-## Welcome
+The Omnia Voice API allows you to programmatically manage voice agents, tools, phone numbers, and calls.
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+## Base URL
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://dashboard.omnia-voice.com/api/v1
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All requests require an API key in the `X-API-Key` header:
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/agents \
+  -H "X-API-Key: ck_prod_xxxxxxxxxxxx"
+```
+
+<Card title="Authentication Guide" icon="key" href="/authentication">
+  Learn more about API authentication
+</Card>
+
+## Response Format
+
+### Success Response
 
 ```json
-"security": [
-  {
-    "bearerAuth": []
+{
+  "data": { ... },
+  "pagination": {
+    "page": 1,
+    "limit": 50,
+    "total": 100,
+    "totalPages": 2
   }
-]
+}
 ```
+
+### Error Response
+
+```json
+{
+  "error": {
+    "message": "Error message",
+    "code": "ERROR_CODE",
+    "details": { ... }
+  }
+}
+```
+
+## Rate Limiting
+
+- **50 requests per minute** per API key
+
+Rate limit headers included in responses:
+- `X-RateLimit-Limit`
+- `X-RateLimit-Remaining`
+- `X-RateLimit-Reset`
+
+## Endpoints Overview
+
+### Agents
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/agents` | List all agents |
+| POST | `/agents` | Create a new agent |
+| GET | `/agents/{id}` | Get agent details |
+| PUT | `/agents/{id}` | Update an agent |
+| DELETE | `/agents/{id}` | Delete an agent |
+
+### Calls
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/calls/create` | Create a voice call |
+| GET | `/calls` | List call logs |
+| GET | `/calls/{id}` | Get call details |
+
+### Tools
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/agent-tools` | List all tools |
+| POST | `/agent-tools` | Create a new tool |
+| GET | `/agent-tools/{id}` | Get tool details |
+| PATCH | `/agent-tools/{id}` | Update a tool |
+| DELETE | `/agent-tools/{id}` | Delete a tool |
+| GET | `/agent-tools/system` | List system tools |
+| GET | `/agents/{id}/tools` | List agent's tools |
+| POST | `/agents/{id}/tools` | Assign tools to agent |
+| DELETE | `/agents/{id}/tools/{toolId}` | Remove tool from agent |
+
+### Phone Numbers
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/numbers` | List phone numbers |
+| GET | `/numbers/{id}` | Get phone number details |
+
+### Configuration
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/voices` | List available voices |
+| GET | `/languages` | List available languages |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/api-reference/authentication">
+    Set up API authentication
+  </Card>
+  <Card title="Error Handling" icon="triangle-exclamation" href="/api-reference/errors">
+    Understand error responses
+  </Card>
+</CardGroup>

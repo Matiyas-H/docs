@@ -1,0 +1,90 @@
+---
+title: "Voices & Languages"
+description: "Understanding voice and language options"
+---
+
+# Voices & Languages
+
+Omnia Voice supports 100+ voices across 26 languages, allowing you to create agents that speak naturally in your customers' preferred language.
+
+## Listing Voices
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/voices \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+Filter by language:
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/voices?languageCode=en \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+## Listing Languages
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/languages \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+## Supported Languages
+
+| Language | Code | Voices |
+|----------|------|--------|
+| English (US) | `en-US` | 20+ |
+| English (UK) | `en-GB` | 10+ |
+| Spanish | `es` | 15+ |
+| French | `fr` | 12+ |
+| German | `de` | 10+ |
+| Italian | `it` | 8+ |
+| Portuguese | `pt` | 8+ |
+| Japanese | `ja` | 6+ |
+| Korean | `ko` | 4+ |
+| Chinese | `zh` | 6+ |
+| And more... | | |
+
+## Voice Characteristics
+
+Each voice has unique characteristics:
+
+- **Gender**: Male, Female
+- **Tone**: Professional, Friendly, Calm, Energetic
+- **Age**: Young, Middle-aged, Senior
+- **Accent**: Regional variations
+
+## Choosing the Right Voice
+
+Consider your use case:
+
+| Use Case | Recommended Voice Style |
+|----------|------------------------|
+| Customer Support | Friendly, Patient |
+| Sales | Energetic, Confident |
+| Medical | Calm, Professional |
+| Finance | Professional, Trustworthy |
+
+## Preview Voices
+
+Each voice includes a preview URL. Use the dashboard to listen to samples before selecting.
+
+```json
+{
+  "id": "voice_sarah",
+  "name": "Sarah",
+  "description": "Friendly female voice with American accent",
+  "previewUrl": "https://...",
+  "languageCode": "en-US"
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Agents" icon="robot" href="/guides/agents">
+    Configure your agent with a voice
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/config/voices">
+    See voices endpoint
+  </Card>
+</CardGroup>

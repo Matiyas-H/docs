@@ -1,0 +1,149 @@
+---
+title: "Creating Agents"
+description: "Learn how to create and configure voice AI agents"
+---
+
+# Creating Agents
+
+Voice agents are the core of the Omnia Voice platform. Each agent has its own personality, voice, language, and capabilities defined through system prompts and tools.
+
+## Agent Components
+
+### Voice & Language
+
+Choose from 100+ voices across 26 languages. Each voice has unique characteristics suitable for different use cases.
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/voices?languageCode=en \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+### System Prompt
+
+The system prompt defines the agent's personality, knowledge, and behavior. It's composed of several parts:
+
+| Component | Description |
+|-----------|-------------|
+| **Base Prompt** | Core personality and role definition |
+| **Context** | Background information and knowledge |
+| **Custom Instructions** | Specific behavioral guidelines |
+| **Questions** | Follow-up questions the agent should ask |
+
+### Example Configuration
+
+```javascript
+const agentConfig = {
+  name: "Customer Support Agent",
+  description: "Handles customer inquiries",
+  config: {
+    languageId: "lang_en_us",
+    voiceId: "voice_sarah",
+    greeting: "Hello! Thank you for calling. How can I help you today?",
+    basePrompt: `You are Sarah, a friendly customer support representative.
+      You have 5 years of experience and are known for your patience.`,
+    context: `Our company provides cloud storage and collaboration tools.
+      Common issues include: password resets, storage upgrades, file sharing.`,
+    customInstructions: `- Always verify the customer's account before changes
+      - Offer to create support tickets for complex issues
+      - If unsure, offer to escalate to a senior technician`,
+    recordingEnabled: true
+  }
+};
+```
+
+## Creating an Agent
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agents \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Customer Support Agent",
+    "description": "Handles customer inquiries",
+    "status": "ACTIVE",
+    "config": {
+      "languageId": "YOUR_LANGUAGE_ID",
+      "voiceId": "YOUR_VOICE_ID",
+      "greeting": "Hello! How can I help you today?",
+      "basePrompt": "You are a helpful customer support agent.",
+      "recordingEnabled": true
+    }
+  }'
+```
+
+```javascript Node.js
+const agent = await fetch('https://dashboard.omnia-voice.com/api/v1/agents', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    name: 'Customer Support Agent',
+    config: {
+      languageId: 'YOUR_LANGUAGE_ID',
+      voiceId: 'YOUR_VOICE_ID',
+      greeting: 'Hello! How can I help you today?',
+      basePrompt: 'You are a helpful customer support agent.',
+      recordingEnabled: true
+    }
+  })
+}).then(r => r.json());
+```
+</CodeGroup>
+
+## Agent Status
+
+Agents can have the following statuses:
+
+| Status | Description |
+|--------|-------------|
+| `ACTIVE` | Agent is ready to receive calls |
+| `INACTIVE` | Agent is paused and won't receive calls |
+| `ARCHIVED` | Agent has been archived |
+
+## Updating an Agent
+
+```bash
+curl -X PUT https://dashboard.omnia-voice.com/api/v1/agents/AGENT_ID \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Updated Agent Name",
+    "config": {
+      "greeting": "Welcome! How may I assist you?"
+    }
+  }'
+```
+
+## Best Practices
+
+<Warning>
+  **Security First**: Never include sensitive information like passwords or API keys in agent prompts.
+</Warning>
+
+### Do's
+
+<Check>Keep prompts clear and concise</Check>
+<Check>Include fallback responses for unknown queries</Check>
+<Check>Test with various scenarios before deployment</Check>
+<Check>Monitor and iterate based on call logs</Check>
+
+### Don'ts
+
+<Cross>Don't make promises the agent can't keep</Cross>
+<Cross>Don't include personal information in prompts</Cross>
+<Cross>Don't forget to handle error cases</Cross>
+<Cross>Don't skip testing edge cases</Cross>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Add Tools" icon="wrench" href="/guides/tools">
+    Give your agent capabilities to perform actions
+  </Card>
+  <Card title="Knowledge Bases" icon="book" href="/guides/knowledge-bases">
+    Train your agent with custom knowledge
+  </Card>
+</CardGroup>

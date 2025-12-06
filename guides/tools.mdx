@@ -1,0 +1,217 @@
+---
+title: "Tools & Actions"
+description: "Extend your agents with custom tools and integrations"
+---
+
+# Tools & Actions
+
+Tools extend your agent's capabilities by allowing them to perform actions beyond conversation. When an agent determines a tool is needed, it automatically invokes the appropriate tool with parameters extracted from the conversation.
+
+## Tool Types
+
+### HTTP Tools
+
+HTTP tools execute on your server via HTTP requests. When invoked, the system sends an HTTP request to your configured endpoint.
+
+**Best for:**
+- Database queries and updates
+- External API integrations
+- Payment processing
+- CRM integrations
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agent-tools \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "http",
+    "name": "Customer Lookup",
+    "description": "Look up customer information by phone number",
+    "modelToolName": "lookupCustomer",
+    "httpMethod": "GET",
+    "baseUrlPattern": "https://api.example.com/customers/{phoneNumber}",
+    "automaticParameters": {
+      "apiKey": {
+        "location": "header",
+        "knownValue": "Bearer YOUR_API_KEY"
+      }
+    },
+    "dynamicParameters": {
+      "phoneNumber": {
+        "location": "path",
+        "schema": {
+          "type": "string",
+          "description": "Customer phone number to look up"
+        },
+        "required": true
+      }
+    }
+  }'
+```
+
+```javascript Node.js
+const tool = await fetch('https://dashboard.omnia-voice.com/api/v1/agent-tools', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'YOUR_API_KEY',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    type: 'http',
+    name: 'Customer Lookup',
+    modelToolName: 'lookupCustomer',
+    httpMethod: 'GET',
+    baseUrlPattern: 'https://api.example.com/customers/{phoneNumber}',
+    dynamicParameters: {
+      phoneNumber: {
+        location: 'path',
+        schema: { type: 'string', description: 'Phone number' },
+        required: true
+      }
+    }
+  })
+}).then(r => r.json());
+```
+</CodeGroup>
+
+### Client Tools
+
+Client tools execute in your client application via WebSocket messages. When invoked, the system sends a message to your WebSocket connection.
+
+**Best for:**
+- Call transfers and forwarding
+- UI updates and notifications
+- Real-time visual feedback
+- Device control
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agent-tools \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "client",
+    "name": "Transfer Call",
+    "description": "Transfer the call to a specific department",
+    "modelToolName": "transferCall",
+    "dynamicParameters": {
+      "department": {
+        "schema": {
+          "type": "string",
+          "description": "Department name (sales, support, billing)"
+        },
+        "required": true
+      }
+    }
+  }'
+```
+
+## Parameters
+
+### Dynamic Parameters
+
+Values the AI extracts from conversation. Different for each invocation.
+
+| Property | Description |
+|----------|-------------|
+| `type` | `string`, `number`, `boolean`, `object`, `array` |
+| `description` | Helps AI understand what to extract |
+| `required` | Whether parameter must be provided |
+| `enum` | Optional list of allowed values |
+| `location` | For HTTP tools: `header`, `query`, `path`, or `body` |
+
+### Automatic Parameters
+
+Values provided automatically by the system. Same for every invocation. Hidden from the AI.
+
+Common use cases:
+- API keys and authentication tokens
+- User context (email, phone number)
+- Session/call identifiers
+
+**System Variables:**
+- `KNOWN_PARAM_CALL_ID` - Current call session ID
+- `KNOWN_PARAM_USER_EMAIL` - User's email address
+- `KNOWN_PARAM_PHONE_NUMBER` - Caller's phone number
+
+## Assigning Tools to Agents
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/agents/AGENT_ID/tools \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "toolIds": ["tool-id-1", "tool-id-2"]
+  }'
+```
+
+## System Tools
+
+Omnia provides built-in system tools for common operations:
+
+```bash
+curl https://dashboard.omnia-voice.com/api/v1/agent-tools/system \
+  -H "X-API-Key: YOUR_API_KEY"
+```
+
+## Handling Client Tool Invocations
+
+When using client tools with WebSocket connections, you'll receive messages like:
+
+```json
+{
+  "type": "client_tool_invocation",
+  "invocationId": "inv_abc123",
+  "toolName": "transferCall",
+  "parameters": {
+    "department": "sales"
+  }
+}
+```
+
+Respond with:
+
+```json
+{
+  "type": "client_tool_result",
+  "invocationId": "inv_abc123",
+  "result": "Call transferred successfully"
+}
+```
+
+<Warning>
+  You **must** send a `client_tool_result` for every `client_tool_invocation` you receive. Use the exact same `invocationId`.
+</Warning>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="HTTP Tools">
+    - Optimize endpoints to respond within 6 seconds
+    - Return clear error messages for failures
+    - Use automatic parameters for API keys
+    - Validate all inputs on your server
+  </Accordion>
+  <Accordion title="Client Tools">
+    - Always send `client_tool_result` for every invocation
+    - Handle errors gracefully with error objects
+    - Monitor WebSocket connection health
+  </Accordion>
+  <Accordion title="Tool Design">
+    - Use descriptive `modelToolName` values (camelCase)
+    - Each tool should have one clear purpose
+    - Write detailed descriptions
+    - Use enums for limited valid values
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="WebSocket Guide" icon="plug" href="/guides/websocket">
+    Learn about WebSocket integration
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/tools/list">
+    See all tool endpoints
+  </Card>
+</CardGroup>

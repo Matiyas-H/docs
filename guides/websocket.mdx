@@ -1,0 +1,190 @@
+---
+title: "WebSocket Integration"
+description: "Build custom voice applications with WebSocket connections"
+---
+
+# WebSocket Integration
+
+For custom integrations, connect to Omnia Voice agents via WebSocket. This is ideal for browser-based voice applications, SIP integrations, or custom telephony systems.
+
+## Creating a WebSocket Call
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/calls/create \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "YOUR_AGENT_ID",
+    "connectionType": "websocket",
+    "websocket": {
+      "inputSampleRate": 16000,
+      "outputSampleRate": 16000
+    }
+  }'
+```
+
+<Accordion title="Response">
+```json
+{
+  "id": "call_abc123",
+  "websocketUrl": "wss://voice.omnia-voice.com/ws/abc123",
+  "status": "created",
+  "connectionType": "websocket"
+}
+```
+</Accordion>
+
+## Connection Types
+
+| Type | Description |
+|------|-------------|
+| `webrtc` | Browser-based WebRTC (easiest) |
+| `websocket` | Raw WebSocket with audio frames |
+| `twilio` | Twilio Media Streams |
+| `telnyx` | Telnyx telephony |
+| `plivo` | Plivo telephony |
+
+## Audio Format
+
+The WebSocket carries:
+
+- **Binary frames**: PCM s16le audio data (16-bit signed little-endian)
+- **Text frames**: JSON messages for events and tool invocations
+
+Configure sample rates in the call creation request. For telephony/SIP integrations, use 8000 Hz.
+
+## Message Types
+
+### Messages You Receive
+
+<CodeGroup>
+```json call_started
+{
+  "type": "call_started",
+  "callId": "call_abc123"
+}
+```
+
+```json state
+{
+  "type": "state",
+  "state": "listening"
+}
+```
+
+```json client_tool_invocation
+{
+  "type": "client_tool_invocation",
+  "invocationId": "inv_xyz",
+  "toolName": "transferCall",
+  "parameters": {
+    "department": "sales"
+  }
+}
+```
+</CodeGroup>
+
+Agent states: `idle`, `listening`, `thinking`, `speaking`
+
+### Messages You Send
+
+<CodeGroup>
+```json client_tool_result
+{
+  "type": "client_tool_result",
+  "invocationId": "inv_xyz",
+  "result": "Transfer successful"
+}
+```
+
+```json hang_up
+{
+  "type": "hang_up",
+  "message": "Goodbye!"
+}
+```
+</CodeGroup>
+
+## JavaScript Example
+
+```javascript
+const ws = new WebSocket(websocketUrl);
+
+ws.onmessage = (event) => {
+  if (typeof event.data === 'string') {
+    const message = JSON.parse(event.data);
+
+    switch (message.type) {
+      case 'call_started':
+        console.log('Call started:', message.callId);
+        break;
+
+      case 'state':
+        console.log('Agent state:', message.state);
+        break;
+
+      case 'client_tool_invocation':
+        handleToolInvocation(message);
+        break;
+    }
+  } else {
+    // Binary audio data - send to audio player
+    playAudio(event.data);
+  }
+};
+
+function handleToolInvocation(message) {
+  const result = executeClientTool(message.toolName, message.parameters);
+
+  ws.send(JSON.stringify({
+    type: 'client_tool_result',
+    invocationId: message.invocationId,
+    result: result
+  }));
+}
+
+// Send audio from microphone
+function sendAudio(audioData) {
+  ws.send(audioData);
+}
+```
+
+## SIP Integration Notes
+
+For SIP/telephony integration:
+
+1. Use `connectionType: "websocket"` with 8000 Hz sample rates
+2. Transcode G.711 ulaw to PCM s16le for input
+3. Transcode PCM s16le to G.711 ulaw for output
+4. Use client tools for call control (transfer, hold, etc.)
+
+## Inline Calls
+
+For stateless integration without predefined agents:
+
+```bash
+curl -X POST https://dashboard.omnia-voice.com/api/v1/calls/inline \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "systemPrompt": "You are a helpful assistant.",
+    "voice": "Mark",
+    "language": "en",
+    "connectionType": "websocket",
+    "websocket": {
+      "inputSampleRate": 8000,
+      "outputSampleRate": 8000
+    }
+  }'
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Client Tools" icon="wrench" href="/guides/tools#client-tools">
+    Learn about client tool execution
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/calls/create">
+    See all call endpoints
+  </Card>
+</CardGroup>
